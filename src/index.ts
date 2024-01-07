@@ -1,8 +1,27 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import AWS from "aws-sdk";
+import * as dynamoose from "dynamoose";
+import config from "./config/config";
 
-// Initialize DynamoDB Document Client
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+// Create new DynamoDB instance
+const ddb = new dynamoose.aws.ddb.DynamoDB({
+  credentials: {
+    accessKeyId: config.DB.AWS_ACCESS_KEY_ID,
+    secretAccessKey: config.DB.AWS_SECRET_ACCESS_KEY,
+  },
+  region: config.DB.AWS_REGION,
+});
+
+// Set DynamoDB instance to the Dynamoose DDB instance
+dynamoose.aws.ddb.set(ddb);
+
+// Define a model using Dynamoose
+const YourSchema = new dynamoose.Schema({
+  someid: String,
+  name: String,
+  // Add other attributes as needed
+});
+
+const YourModel = dynamoose.model("YourTableName", YourSchema);
 
 export const hello: (
   event: APIGatewayProxyEvent
@@ -27,17 +46,8 @@ export const hello: (
     // Perform CRUD operations based on HTTP method
     switch (httpMethod) {
       case "POST":
-        // Create item in DynamoDB
-        await dynamoDB
-          .put({
-            TableName: "YourTableName",
-            Item: {
-              someid: someIdParam,
-              name: name,
-              // Add other attributes as needed
-            },
-          })
-          .promise();
+        // Create item in DynamoDB using Dynamoose
+        await YourModel.create({ someid: someIdParam, name });
         return {
           statusCode: 200,
           body: JSON.stringify({
@@ -45,36 +55,15 @@ export const hello: (
           }),
         };
       case "GET":
-        // Retrieve item from DynamoDB
-        const getItemResult = await dynamoDB
-          .get({
-            TableName: "YourTableName",
-            Key: {
-              someid: someIdParam,
-            },
-          })
-          .promise();
+        // Retrieve item from DynamoDB using Dynamoose
+        const getItemResult = await YourModel.get({ someid: someIdParam });
         return {
           statusCode: 200,
-          body: JSON.stringify(getItemResult.Item),
+          body: JSON.stringify(getItemResult),
         };
       case "PUT":
-        // Update item in DynamoDB
-        await dynamoDB
-          .update({
-            TableName: "YourTableName",
-            Key: {
-              someid: someIdParam,
-            },
-            UpdateExpression: "SET #name = :newName",
-            ExpressionAttributeNames: {
-              "#name": "name",
-            },
-            ExpressionAttributeValues: {
-              ":newName": name,
-            },
-          })
-          .promise();
+        // Update item in DynamoDB using Dynamoose
+        await YourModel.update({ someid: someIdParam }, { name });
         return {
           statusCode: 200,
           body: JSON.stringify({
@@ -82,15 +71,8 @@ export const hello: (
           }),
         };
       case "DELETE":
-        // Delete item from DynamoDB
-        await dynamoDB
-          .delete({
-            TableName: "YourTableName",
-            Key: {
-              someid: someIdParam,
-            },
-          })
-          .promise();
+        // Delete item from DynamoDB using Dynamoose
+        await YourModel.delete({ someid: someIdParam });
         return {
           statusCode: 200,
           body: JSON.stringify({
