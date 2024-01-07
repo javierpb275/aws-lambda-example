@@ -14,6 +14,7 @@ app.post("/:someid", async (req: Request, res: Response) => {
     headers: { Authorization: req.header("Authorization") },
     pathParameters: { someid },
     queryStringParameters: queryParameters,
+    httpMethod: "POST",
   };
 
   const result = await hello(event as any);
